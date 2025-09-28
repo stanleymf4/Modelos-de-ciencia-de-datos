@@ -1,0 +1,169 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "gpuType": "T4",
+      "authorship_tag": "ABX9TyNK3JYMEjlWRxFQDsg+fPP4",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/stanleymf4/Modelos-de-ciencia-de-datos/blob/main/imagen_a_texto_GROQ_GRADIO\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 6,
+      "metadata": {
+        "id": "aVKmbWxAJGyP"
+      },
+      "outputs": [],
+      "source": [
+        "# 1. Instalación de dependencias\n",
+        "!pip install groq -q\n",
+        "\n",
+        "from groq import Groq\n",
+        "import base64\n",
+        "import os\n",
+        "from google.colab import userdata\n",
+        "\n",
+        "# Se debe tener configurado un api key en Groq y configurarla como secreto en google colab\n",
+        "client = Groq(api_key=userdata.get('GROQ_KEY'))\n",
+        "\n",
+        "# Esta función permite códificar la imagen en base 64\n",
+        "def encode_image(image_path):\n",
+        "  with open(image_path, \"rb\") as image_file:\n",
+        "    return base64.b64encode(image_file.read()).decode('utf-8')\n",
+        "\n",
+        "# Esta función tiene la lógica para interactuar con el modelo y mostrar la descripción de la imagen\n",
+        "def description_image(image_path):\n",
+        "\n",
+        "  # obtener la igagen codificada\n",
+        "  base64_image = encode_image(image_path)\n",
+        "\n",
+        "  # llamada al modelo e instrucción para interactuar con el modelo con una salida tipo chat\n",
+        "  chat_completion = client.chat.completions.create(\n",
+        "      messages=[\n",
+        "          {\n",
+        "              \"role\": \"user\",\n",
+        "              \"content\": [\n",
+        "                  {\"type\": \"text\", \"text\": \"What's in this image?\"},\n",
+        "                  {\n",
+        "                      \"type\": \"image_url\",\n",
+        "                      \"image_url\": {\n",
+        "                          \"url\": f\"data:image/jpeg;base64,{base64_image}\",\n",
+        "                      },\n",
+        "                  },\n",
+        "              ],\n",
+        "          }\n",
+        "      ],\n",
+        "      model=\"meta-llama/llama-4-scout-17b-16e-instruct\",\n",
+        "  )\n",
+        "\n",
+        "  return chat_completion.choices[0].message.content"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import gradio as gr\n",
+        "from PIL import Image\n",
+        "\n",
+        "# Función para recibir y mostrar la imagen\n",
+        "def procesar_imagen(img):\n",
+        "    img_evaluada = description_image(img)\n",
+        "    return img_evaluada\n",
+        "\n",
+        "# Crear la interfaz\n",
+        "iface = gr.Interface(\n",
+        "    fn=procesar_imagen,        # función que procesa la imagen\n",
+        "    inputs=gr.Image(type=\"filepath\"),\n",
+        "    outputs=gr.Textbox(label=\"Texto\", lines=10, placeholder=\"Aquí aparecerá la descripción...\"),\n",
+        "    title=\"Cargar y mostrar imagen\",\n",
+        "    description=\"Sube una imagen desde tu PC para visualizarla en Colab.\"\n",
+        ")\n",
+        "\n",
+        "# Lanzar la interfaz\n",
+        "iface.launch(debug=True)\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 660
+        },
+        "id": "Yr8XB4giJr3l",
+        "outputId": "088acd2d-cce2-46ff-fe2a-927a2ed0fcb7"
+      },
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "It looks like you are running Gradio on a hosted Jupyter notebook, which requires `share=True`. Automatically setting `share=True` (you can turn this off by setting `share=False` in `launch()` explicitly).\n",
+            "\n",
+            "Colab notebook detected. This cell will run indefinitely so that you can see errors and logs. To turn off, set debug=False in launch().\n",
+            "* Running on public URL: https://bd24a3edc64e170896.gradio.live\n",
+            "\n",
+            "This share link expires in 1 week. For free permanent hosting and GPU upgrades, run `gradio deploy` from the terminal in the working directory to deploy to Hugging Face Spaces (https://huggingface.co/spaces)\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ],
+            "text/html": [
+              "<div><iframe src=\"https://bd24a3edc64e170896.gradio.live\" width=\"100%\" height=\"500\" allow=\"autoplay; camera; microphone; clipboard-read; clipboard-write;\" frameborder=\"0\" allowfullscreen></iframe></div>"
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Keyboard interruption in main thread... closing server.\n",
+            "Killing tunnel 127.0.0.1:7860 <> https://bd24a3edc64e170896.gradio.live\n"
+          ]
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": []
+          },
+          "metadata": {},
+          "execution_count": 9
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "ZUFvuWzOJsqZ"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
